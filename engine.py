@@ -53,10 +53,13 @@ class Query:
         if str(query.tokens[i]).lower() == 'distinct':
             self.distinct = True
             i += 2
-        self.cols = list(query.tokens[i].get_identifiers())
-        self.cols = [str(x) for x in self.cols]
         self.tables = list(query.tokens[i+4].get_identifiers())
         self.tables = [str(x) for x in self.tables]
+        if str(query.tokens[i]) == '*':
+            self.cols = [table + '.' + col for table in self.tables for col in meta[table]]
+        else:
+            self.cols = list(query.tokens[i].get_identifiers())
+            self.cols = [str(x) for x in self.cols]
         self.proper_meta()
         self.join_tables()
 
