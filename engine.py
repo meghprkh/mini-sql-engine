@@ -76,6 +76,7 @@ class Query:
         self.validate_cols()
         self.join_tables()
         self.resolve_where()
+        self.resolve_distinct()
 
     def test_row(self, row, c):
         prev = True
@@ -206,6 +207,18 @@ class Query:
     def join_tables(self):
         self.nt = self.recurse_join(self.tables)
         # print(self.nt, len(self.nt))
+
+    def resolve_distinct(self):
+        if not self.distinct:
+            return
+        nnt = []
+        s = set()
+        for row in self.nt:
+            tp = str([row[col] for col in self.cols])
+            if not tp in s:
+                s.add(tp)
+                nnt.append(row)
+        self.nt = nnt
 
     def print_result(self):
         writer = csv.DictWriter(sys.stdout, self.cols, extrasaction="ignore")
