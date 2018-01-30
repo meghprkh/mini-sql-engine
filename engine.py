@@ -103,6 +103,11 @@ class Query:
         self.nt = self.recurse_join(self.tables)
         # print(self.nt, len(self.nt))
 
+    def print_result(self):
+        writer = csv.DictWriter(sys.stdout, self.cols, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(self.nt)
+
 meta = Meta()
 tables = {}
 for table in meta:
@@ -110,3 +115,4 @@ for table in meta:
     # print(tables[table])
 q = Query(sys.argv[1])
 print(q.cols, q.tables, q.distinct)
+q.print_result()
