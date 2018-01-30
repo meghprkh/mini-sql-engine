@@ -60,8 +60,98 @@ class Query:
         else:
             self.cols = list(query.tokens[i].get_identifiers())
             self.cols = [str(x) for x in self.cols]
+        self.where = []
+        if len(query.tokens) > i+6:
+            self.where = query.tokens[i+6].tokens
+            if not str(self.where[0]).lower() == "where":
+                raise NotImplementedError('Only where is supported' + str(self.where))
+            self.where = self.where[2:]
         self.proper_meta()
         self.join_tables()
+        self.resolve_where()
+
+    def test_row(self, row, c):
+        prev = True
+        prevand = True
+        for i, condition in enumerate(c):
+            ns = None # if set, means new status is there
+            if str(condition.ttype) == 'Token.Text.Whitespace':
+                continue
+            elif str(condition.ttype) == 'Token.Keyword':
+                if str(condition).lower() == 'or':
+                    prevand = False
+                elif str(condition).lower() == 'and':
+                    prevand = True
+            elif type(condition).__name__ == 'Parenthesis':
+                ns = self.test_row(row, condition.tokens[1:-1])
+            elif type(condition).__name__ == 'Comparison':
+                tokens = condition.tokens
+                iden1 = None
+                iden2 = None
+                op = None
+                value = None
+                for token in tokens:
+                    if token.ttype is not None: # is token
+                        if str(token.ttype) == 'Token.Operator.Comparison':
+                            op = str(token)
+                        elif str(token.ttype).startswith('Token.Literal'):
+                            value = int(str(token))
+                    elif type(token).__name__ == 'Identifier':
+                        if iden1 is not None:
+                            iden2 = self.proper_col(str(token))
+                        else:
+                            if value is not None:
+                                op = self.reverseop(op)
+                            iden1 = self.proper_col(str(token))
+                if iden1 is None: # Nothing to compare anything to
+                    ns = True
+                elif iden2 is not None:
+                    ns = self.applyop(row[iden1], op, row[iden2])
+                else:
+                    ns = self.applyop(row[iden1], op, value)
+
+            if not ns is None:
+                if prevand:
+                    prev = prev and ns
+                else:
+                    prev = prev or ns
+        return prev
+
+    def reverseop(self, op):
+        if op == '<':
+            return '>'
+        elif op == '>':
+            return '<'
+        elif op == '<=':
+            return '>='
+        elif op == '>=':
+            return '<='
+        return op
+
+    def applyop(self, v1, op, v2):
+        v1, v2 = int(v1), int(v2)
+        if op == '=':
+            return v1 == v2
+        elif op == '<':
+            return v1 < v2
+        elif op == '>':
+            return v1 > v2
+        elif op == '<=':
+            return v1 <= v2
+        elif op == '>=':
+            return v1 >= v2
+        else:
+            raise NotImplementedError(op + ' operator not recognized')
+
+    def resolve_where(self):
+        if len(self.where) == 0:
+            return
+        nnt = []
+        for i, row in enumerate(self.nt):
+            status = self.test_row(row, self.where)
+            if status:
+                nnt.append(row)
+        self.nt = nnt
 
     def proper_col(self, col):
         if '.' in col:
@@ -117,5 +207,5 @@ for table in meta:
     tables[table] = Table(table)
     # print(tables[table])
 q = Query(sys.argv[1])
-print(q.cols, q.tables, q.distinct)
+# print(q.cols, q.tables, q.distinct)
 q.print_result()
