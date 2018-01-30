@@ -77,7 +77,9 @@ class Query:
             self.cols[i] = self.proper_col(self.cols[i])
 
 meta = Meta()
-t1 = Table('table1')
-print(t1)
+tables = {}
+for table in meta:
+    tables[table] = Table(table)
+    # print(tables[table])
 q = Query(sys.argv[1])
 print(q.cols, q.tables, q.distinct)
