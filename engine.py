@@ -1,3 +1,5 @@
+import csv
+
 class Meta(dict):
     def __init__(self):
         dict.__init__(self)
@@ -18,5 +20,23 @@ class Meta(dict):
             elif l != '<end_table>':
                 self[tableName].append(l)
 
+class Table(dict):
+    def __init__(self, name):
+        dict.__init__(self)
+        self.name = name
+        for col in meta[self.name]:
+            self[col] = []
+        self.read()
+
+    def read(self):
+        fname = self.name + '.csv'
+        with open(fname, 'rb') as csvfile:
+            csvr = csv.reader(csvfile)
+            for row in csvr:
+                for i in range(len(row)):
+                    col_name = meta[self.name][i]
+                    self[col_name].append(row[i])
+
 meta = Meta()
-print(meta)
+t1 = Table('table1')
+print(t1)
