@@ -38,7 +38,7 @@ class Table(list):
                 r = {}
                 for i in range(len(row)):
                     col_name = meta[self.name][i]
-                    r[col_name] = row[i]
+                    r[col_name] = int(row[i])
                 self.append(r)
             self.nrows += 1
 
