@@ -22,12 +22,11 @@ class Meta(dict):
             elif l != '<end_table>':
                 self[tableName].append(l)
 
-class Table(dict):
+class Table(list):
     def __init__(self, name):
-        dict.__init__(self)
+        list.__init__(self)
         self.name = name
-        for col in meta[self.name]:
-            self[col] = []
+        self.nrows = 0
         self.read()
 
     def read(self):
@@ -35,9 +34,12 @@ class Table(dict):
         with open(fname, 'rb') as csvfile:
             csvr = csv.reader(csvfile)
             for row in csvr:
+                r = {}
                 for i in range(len(row)):
                     col_name = meta[self.name][i]
-                    self[col_name].append(row[i])
+                    r[col_name] = row[i]
+                self.append(r)
+            self.nrows += 1
 
 class Query:
     def __init__(self, command):
