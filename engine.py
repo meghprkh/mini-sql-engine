@@ -53,20 +53,27 @@ class Query:
         if str(query.tokens[i]).lower() == 'distinct':
             self.distinct = True
             i += 2
-        self.tables = list(query.tokens[i+4].get_identifiers())
-        self.tables = [str(x) for x in self.tables]
+        if type(query.tokens[i+4]).__name__ == 'Identifier':
+            self.tables = [str(query.tokens[i+4])]
+        else:
+            self.tables = list(query.tokens[i+4].get_identifiers())
+            self.tables = [str(x) for x in self.tables]
+        self.validate_tables()
         if str(query.tokens[i]) == '*':
             self.cols = [table + '.' + col for table in self.tables for col in meta[table]]
         else:
-            self.cols = list(query.tokens[i].get_identifiers())
-            self.cols = [str(x) for x in self.cols]
+            if type(query.tokens[i]).__name__ == 'Identifier':
+                self.cols = [str(query.tokens[i])]
+            else:
+                self.cols = list(query.tokens[i].get_identifiers())
+                self.cols = [str(x) for x in self.cols]
         self.where = []
         if len(query.tokens) > i+6:
             self.where = query.tokens[i+6].tokens
             if not str(self.where[0]).lower() == "where":
                 raise NotImplementedError('Only where is supported' + str(self.where))
             self.where = self.where[2:]
-        self.proper_meta()
+        self.validate_cols()
         self.join_tables()
         self.resolve_where()
 
@@ -168,10 +175,12 @@ class Query:
                 return t + '.' + col
         raise Exception('Invalid column ' + col)
 
-    def proper_meta(self):
+    def validate_tables(self):
         for t in self.tables:
             if not t in meta:
                 raise Exception('Invalid table ' + t)
+
+    def validate_cols(self):
         for i in range(len(self.cols)):
             self.cols[i] = self.proper_col(self.cols[i])
 
