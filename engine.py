@@ -105,7 +105,9 @@ class Query:
                             iden1 = self.proper_col(str(token))
                 if iden1 is None: # Nothing to compare anything to
                     ns = True
-                elif iden2 is not None:
+                elif iden2 is not None: # Join
+                    if iden2 in self.cols: # Remove dup col
+                        self.cols.remove(iden2)
                     ns = self.applyop(row[iden1], op, row[iden2])
                 else:
                     ns = self.applyop(row[iden1], op, value)
