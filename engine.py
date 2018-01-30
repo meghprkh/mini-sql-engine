@@ -59,14 +59,32 @@ class Query:
             self.tables = list(query.tokens[i+4].get_identifiers())
             self.tables = [str(x) for x in self.tables]
         self.validate_tables()
+        self.colsaggcol, self.colsaggfn = [], []
         if str(query.tokens[i]) == '*':
             self.cols = [table + '.' + col for table in self.tables for col in meta[table]]
         else:
-            if type(query.tokens[i]).__name__ == 'Identifier':
-                self.cols = [str(query.tokens[i])]
+            if type(query.tokens[i]).__name__ != 'IdentifierList':
+                self.cols = [query.tokens[i]]
             else:
                 self.cols = list(query.tokens[i].get_identifiers())
-                self.cols = [str(x) for x in self.cols]
+            colsn = []
+            for col in self.cols:
+                if type(col).__name__ == 'Function':
+                    fn_done = False
+                    for token in col.tokens:
+                        if type(token).__name__ == 'Identifier':
+                            if not fn_done:
+                                self.colsaggfn.append(str(token).lower())
+                                fn_done = True
+                            else:
+                                self.colsaggcol.append(self.proper_col(str(token)))
+                                break
+                        elif type(token).__name__ == 'Parenthesis':
+                            col.tokens += token.tokens[1:-1]
+                    colsn.append(self.colsaggfn[-1] + '(' + self.colsaggcol[-1] + ')')
+                else:
+                    colsn.append(str(col))
+            self.cols = colsn
         self.where = []
         if len(query.tokens) > i+6:
             self.where = query.tokens[i+6].tokens
@@ -77,6 +95,7 @@ class Query:
         self.join_tables()
         self.resolve_where()
         self.resolve_distinct()
+        self.resolve_aggregate()
 
     def test_row(self, row, c):
         prev = True
@@ -183,6 +202,8 @@ class Query:
 
     def validate_cols(self):
         for i in range(len(self.cols)):
+            if '(' in self.cols[i]:
+                continue
             self.cols[i] = self.proper_col(self.cols[i])
 
     def recurse_join(self, ttj):
@@ -219,6 +240,27 @@ class Query:
                 s.add(tp)
                 nnt.append(row)
         self.nt = nnt
+
+    def resolve_aggregate(self):
+        if len(self.nt) == 0:
+            return
+        for i, fn in enumerate(self.colsaggfn):
+            col = self.colsaggcol[i]
+            fullname = fn + '(' + col + ')'
+            v = self.nt[0][col]
+            for row in self.nt:
+                if fn == 'sum' or fn == 'average' or fn == 'avg':
+                    v += row[col]
+                elif fn == 'min':
+                    v = min(v, row[col])
+                elif fn == 'max':
+                    v = max(v, row[col])
+                else:
+                    raise NotImplementedError('Function %s not implemented' % fn)
+            if fn == 'avg' or fn == 'average':
+                v /= len(self.nt)
+            for row in self.nt:
+                row[fullname] = v
 
     def print_result(self):
         writer = csv.DictWriter(sys.stdout, self.cols, extrasaction="ignore")
