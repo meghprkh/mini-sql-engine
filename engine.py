@@ -1,3 +1,4 @@
+import copy
 import csv
 import sqlparse
 import sys
@@ -57,6 +58,7 @@ class Query:
         self.tables = list(query.tokens[i+4].get_identifiers())
         self.tables = [str(x) for x in self.tables]
         self.proper_meta()
+        self.join_tables()
 
     def proper_col(self, col):
         if '.' in col:
@@ -77,6 +79,29 @@ class Query:
                 raise Exception('Invalid table ' + t)
         for i in range(len(self.cols)):
             self.cols[i] = self.proper_col(self.cols[i])
+
+    def recurse_join(self, ttj):
+        nts = []
+        table = ttj[0]
+        if len(ttj) == 1:
+            for row in tables[table]:
+                rts = {}
+                for col in row:
+                    rts[table + '.' + col] = row[col]
+                nts.append(rts)
+            return nts
+        ots = self.recurse_join(ttj[1:])
+        for row in tables[table]:
+            for row2 in ots:
+                rts = copy.deepcopy(row2)
+                for col in row:
+                    rts[table + '.' + col] = row[col]
+                nts.append(rts)
+        return nts
+
+    def join_tables(self):
+        self.nt = self.recurse_join(self.tables)
+        # print(self.nt, len(self.nt))
 
 meta = Meta()
 tables = {}
