@@ -244,7 +244,7 @@ class Query:
         self.nt = nnt
 
     def resolve_aggregate(self):
-        if len(self.nt) == 0:
+        if len(self.nt) == 0 or len(self.colsaggfn) == 0:
             return
         for i, fn in enumerate(self.colsaggfn):
             col = self.colsaggcol[i]
@@ -263,6 +263,8 @@ class Query:
                 v /= len(self.nt)
             for row in self.nt:
                 row[fullname] = v
+        if len(self.nt) > 1:
+            self.nt = [self.nt[0]]
 
     def print_result(self):
         writer = csv.DictWriter(sys.stdout, self.cols, extrasaction="ignore")
