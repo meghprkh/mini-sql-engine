@@ -260,7 +260,7 @@ class Query:
                 else:
                     raise NotImplementedError('Function %s not implemented' % fn)
             if fn == 'avg' or fn == 'average':
-                v /= len(self.nt)
+                v = round(float(v) / len(self.nt), 2)
             for row in self.nt:
                 row[fullname] = v
         if len(self.nt) > 1:
