@@ -4,6 +4,7 @@ import copy
 import csv
 import sqlparse
 import sys
+import traceback
 
 class Meta(dict):
     def __init__(self):
@@ -276,6 +277,9 @@ tables = {}
 for table in meta:
     tables[table] = Table(table)
     # print(tables[table])
-q = Query(sys.argv[1])
-# print(q.cols, q.tables, q.distinct)
-q.print_result()
+try:
+    q = Query(sys.argv[1])
+    # print(q.cols, q.tables, q.distinct)
+    q.print_result()
+except Exception:
+    traceback.print_exc()
